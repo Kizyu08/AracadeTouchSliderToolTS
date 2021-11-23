@@ -7,9 +7,13 @@ import { inspect } from 'util'
 // const filePath = './dist/input.txt';
 export class SegaSerial {
     port: SerialPort
+    stateTop: number
+    stateBottom: number
 
     constructor(portName: string, baudrate = 115200) {
         this.port = new SerialPort(portName, { baudRate: baudrate })
+        this.stateTop = 0
+        this.stateBottom = 0
     }
 
     run() {
@@ -32,7 +36,7 @@ export class SegaSerial {
         if (packet.isValid
             && packet.command == SegaSerialCommandType.SLIDER_REPORT
             && packet.data.length == 32) {
-                
+
             // FF02613F
             let ledData: number[] = [0x3f]
 
@@ -41,11 +45,24 @@ export class SegaSerial {
                 if (d == 0x00) ledData.push(0x00, 0xfe, 0xe6)
             })
 
+
+
+            packet.data.forEach((b, i) => {
+                if (i % 2 === 0 && b > 0x00) this.stateTop |= (1 << (i / 2))
+                if (i % 2 === 0 && b == 0x00) this.stateTop &= ~(1 << (i / 2))
+            })
+            packet.data.forEach((b, i) => {
+                if (i % 2 === 1 && b > 0x00) this.stateBottom |= (1 << ((i / 2)))
+                if (i % 2 === 1 && b == 0x00) this.stateBottom &= ~(1 << ((i / 2)))
+            })
+
             const ledPacket = new SegaSerialData(0xff, SegaSerialCommandType.LED_REPORT, 97, ledData)
 
             const ledPacketRaw = ledPacket.getPacket()
             cursorTo(process.stdout, 0, 5)
-            console.log(inspect(ledPacketRaw, { maxArrayLength: null }))
+            // console.log(inspect(ledPacketRaw, { maxArrayLength: null }))
+            console.log(this.stateTop.toString(2).padStart(16, '0'))
+            console.log(this.stateBottom.toString(2).padStart(16, '0'))
 
             this.port.write(ledPacketRaw)
         }
