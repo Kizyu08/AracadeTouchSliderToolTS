@@ -3,10 +3,13 @@ import SerialPort from 'serialport';
 import { setInterval } from 'timers';
 import { SegaSerialReader, SegaSerialData, SegaSerialCommandType } from './SegaSerialTools'
 import { inspect } from 'util'
+import { Observable, Subject } from 'rxjs';
 
 // const filePath = './dist/input.txt';
 export class SegaSerial {
     port: SerialPort
+    sliderStateOnChangedSubject: Subject<number>
+    sliderStateOnChangedObserbable:Observable<number>
     stateTop: number
     stateBottom: number
 
@@ -14,6 +17,8 @@ export class SegaSerial {
         this.port = new SerialPort(portName, { baudRate: baudrate })
         this.stateTop = 0
         this.stateBottom = 0
+        this.sliderStateOnChangedSubject = new Subject()
+        this.sliderStateOnChangedObserbable = this.sliderStateOnChangedSubject
     }
 
     run() {
@@ -50,8 +55,6 @@ export class SegaSerial {
             packet.data.forEach((b, i) => {
                 if (i % 2 === 0 && b > 0x00) this.stateTop |= (1 << (i / 2))
                 if (i % 2 === 0 && b == 0x00) this.stateTop &= ~(1 << (i / 2))
-            })
-            packet.data.forEach((b, i) => {
                 if (i % 2 === 1 && b > 0x00) this.stateBottom |= (1 << ((i / 2)))
                 if (i % 2 === 1 && b == 0x00) this.stateBottom &= ~(1 << ((i / 2)))
             })
@@ -60,7 +63,6 @@ export class SegaSerial {
 
             const ledPacketRaw = ledPacket.getPacket()
             cursorTo(process.stdout, 0, 5)
-            // console.log(inspect(ledPacketRaw, { maxArrayLength: null }))
             console.log(this.stateTop.toString(2).padStart(16, '0'))
             console.log(this.stateBottom.toString(2).padStart(16, '0'))
 
