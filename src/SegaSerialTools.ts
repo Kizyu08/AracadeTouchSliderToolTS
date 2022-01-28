@@ -86,7 +86,7 @@ export class SegaSerialReader {
     escape: boolean = false
     currentData?: SegaSerialData = undefined
 
-    constructor(onPacketArrivedCallBack?: (data: SegaSerialData) => void) {
+    constructor(onPacketArrivedCallBack?: (data: SegaSerialData) => void, logOut: boolean = true) {
         this.packetBuffer = []
         this.packets = []
         this.onPacketArrived = onPacketArrivedCallBack
@@ -103,8 +103,11 @@ export class SegaSerialReader {
             )
 
             if (this.onPacketArrived) this.onPacketArrived(tekitou)
-            cursorTo(process.stdout, 0, 0)
-            tekitou.printState()
+
+            if(logOut){
+                cursorTo(process.stdout, 0, 0)
+                tekitou.printState()
+            }
 
             this.currentData = tekitou
         })
